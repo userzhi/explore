@@ -2,7 +2,7 @@ import os
 import sys
 import warnings
 import numpy as np
-sys.path.append("/hy-tmp/hengyuanyun/dinov2")
+sys.path.append("/hy-tmp/explore_attention_vit/dinov2")
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -19,6 +19,7 @@ from torchvision import datasets, transforms
 from dinov2.models.vision_transformer import vit_small, vit_base, vit_large
 
 
+__all__ = ['00005.jpg', '00008.jpg',  '00026.jpg', '00180.jpg', '00884.jpg', '01067.jpg']
 
 if 1:
     # # These are settings for ensuring input images to DinoV2 are properly sized
@@ -69,8 +70,8 @@ if 1:
     model.to(device)
     model.eval()
 
-    file = '00180.jpg'
-    original_image = Image.open(os.path.join('/hy-tmp/hengyuanyun/dior_train/', file))
+    file = '01067.jpg'
+    original_image = Image.open(os.path.join('/hy-tmp/explore_attention_vit/dior_train/', file))
     (original_w, original_h) = original_image.size
     img = data_transforms(original_image)
 
@@ -94,29 +95,28 @@ if 1:
     n_register_tokens = 4
 
     q_without_cls = q[:, :, 1:, :]         ####
-    print(q_without_cls.shape)
     k_without_cls = k[:, :, 1:, :]         ####
     
-    attn_without_cls = q_without_cls @ q_without_cls.transpose(-2, -1)
-    print(attn_without_cls.shape)
+    attn_without_cls = q_without_cls @ k_without_cls.transpose(-2, -1)
     attn_without_cls = attn_without_cls.softmax(dim=-1)
     attn_without_cls = nn.Dropout(0.0)(attn_without_cls)
 
     attn_without_cls = attn_without_cls[0, :, 0, 4:].reshape(number_of_heads, -1)
     attn_without_cls = attn_without_cls.reshape(number_of_heads, w_featmap, h_featmap)
-    
     attn_without_cls = torch.sum(attn_without_cls, dim=0)
+
 
     """画出热力图（可以选择其中一个维度的特征）"""
     plt.figure(figsize=(40, 32))
     sns.heatmap(attn_without_cls.cpu().numpy(), cmap='viridis', cbar=True)
-    plt.title("Visualization of heatmap_without_cls__00180")
+    plt.title("Visualization of heatmap_without_cls_"+file.split('.')[0])
     plt.xlabel("Dimensionality")
     plt.ylabel("Sequence Length")
 
 
     """将图像保存到文件"""
-    plt.savefig("/hy-tmp/hengyuanyun/attention_without_class_token/heatmap/heatmap_without_cls_00180.png", dpi=300) 
+    print(os.path.join("/hy-tmp/explore_attention_vit/attention_without_class_token/heatmap/", "heatmap_without_cls_"+file.split('.')[0]+'.png'))
+    plt.savefig(os.path.join("/hy-tmp/explore_attention_vit/attention_without_class_token/heatmap/", "heatmap_without1_cls_"+file.split('.')[0]+'.png'), dpi=300)
     plt.close() 
 
    
