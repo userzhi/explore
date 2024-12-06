@@ -291,6 +291,18 @@ class DinoVisionTransformer(nn.Module):
                 i += 1
         assert len(output) == len(blocks_to_take), f"only {len(output)} / {len(blocks_to_take)} blocks found"
         return output
+    
+    def get_intermediate_layers_attention(self, x, n=1):      ###ZZ
+        x = self.prepare_tokens_with_masks(x, masks=None)
+        # If n is an int, take the n last blocks. If it's a list, take them
+        output, total_block_len = [], len(self.blocks)
+        blocks_to_take = range(total_block_len - n, total_block_len) if isinstance(n, int) else n
+        for i, blk in enumerate(self.blocks):
+            mid_attention = blk(x, return_attention=True)
+            if i in blocks_to_take:
+                output.append(mid_attention)
+        assert len(output) == len(blocks_to_take), f"only {len(output)} / {len(blocks_to_take)} blocks found"
+        return output
 
     def get_intermediate_layers(
         self,
@@ -330,6 +342,7 @@ class DinoVisionTransformer(nn.Module):
                 x = blk(x)
             else: 
                 return blk(x, return_attention=True)
+            
 
     def forward(self, *args, is_training=False, **kwargs):
         ret = self.forward_features(*args, **kwargs)

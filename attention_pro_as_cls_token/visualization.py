@@ -14,6 +14,7 @@ from IPython.display import display_png
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torchvision import datasets, transforms
 
 from dinov2.models.vision_transformer import vit_small, vit_base, vit_large
@@ -21,6 +22,17 @@ from dinov2.models.vision_transformer import vit_small, vit_base, vit_large
 
 __all__ = ['00005.jpg', '00008.jpg',  '00026.jpg', '00180.jpg', '00884.jpg', '01067.jpg']
 
+
+def count_similarity(nm1, nm2):
+    nm1 = nm1.cpu().numpy()
+    nm2 = nm2.cpu().numpy()
+    dot_product = np.dot(nm1, nm2)
+    norm_nm1 = np.linalg.norm(nm1)
+    norm_nm2 = np.linalg.norm(nm2)
+    consine_sim = dot_product / (norm_nm1 * norm_nm2) + 1e-8
+    return consine_sim
+
+np.set_printoptions(threshold=np.inf)
 if 1:
     # # These are settings for ensuring input images to DinoV2 are properly sized
     model = vit_base(
@@ -70,7 +82,7 @@ if 1:
     model.to(device)
     model.eval()
 
-    file = '01067.jpg'
+    file = '00180.jpg'
     original_image = Image.open(os.path.join('/hy-tmp/explore_attention_vit/dior_train/', file))
     (original_w, original_h) = original_image.size
     img = data_transforms(original_image)
@@ -80,47 +92,64 @@ if 1:
     img = img[:, :w, :h]
 
     w_featmap = img.shape[-2] // patch_size
+    print(w_featmap)
     h_featmap = img.shape[-1] // patch_size
+    print(h_featmap)
 
     img = img.unsqueeze(0)
     img = img.to(device)
 
     q_k_attn = model.get_last_self_attention(img.to(device))
                                                           
-    q = q_k_attn[0]
+    q = q_k_attn[0] # shape:[1, 12, 1854, 64]
     k = q_k_attn[1]
-    print(q_k_attn[0].shape, q_k_attn[1].shape, q_k_attn[2].shape)
-
+   
+    q1 = q[:, :, 5:, :]
     number_of_heads = q.shape[1]
     n_register_tokens = 4
-
-    q_without_cls = q[:, :, :, :]          ####   一定要注意
-    print(q[0, 0, 0:1, :])
-    k_without_cls = k[:, :, :, :]          ####
     
-    attn_without_cls = q_without_cls @ k_without_cls.transpose(-2, -1)
-    attn_without_cls = attn_without_cls.softmax(dim=-1)
-    attn_without_cls = nn.Dropout(0.0)(attn_without_cls)
-    print(attn_without_cls.shape)
+    prototype = torch.load('/hy-tmp/dior_N10/prototypes.pth')
+    for i in range(11, 12):
 
-    attn_without_cls = attn_without_cls[0, :, 4, 5:].reshape(number_of_heads, -1)
-    attn_without_cls = attn_without_cls.reshape(number_of_heads, w_featmap, h_featmap)
-    attn_without_cls = torch.sum(attn_without_cls, dim=0)
+        p = prototype['prototypes'][i]
+        p = p.reshape(-1, 64)
+        
+        for i in range(16):
+            sim = count_similarity(q[0, 0, 0, :], p[i])
+            print(sim)
+
+        # p = torch.ones((64))
+        # print(p.shape)
+        if 0:
+            p = p[5].unsqueeze(0).unsqueeze(0).unsqueeze(0)  # torch.Size([1, 1, 1, 64])
+            p = p.expand(1, 12, 1, 64).to('cuda:0')
+
+            print(p.shape)
+            q2 = torch.cat((q[:, :, 0:4, :], p, q1), dim=2).float()
+            print(q2.shape)
+            
+            # print(attn_without_cls[:, :, 0:1, :])
+            attn_without_cls = q2 @ k.transpose(-2, -1)
+            attn_without_cls = attn_without_cls.softmax(dim=-1)
+            attn_without_cls = nn.Dropout(0.0)(attn_without_cls)
+
+            attn_without_cls = attn_without_cls[0, :, 4, 5:].reshape(number_of_heads, -1)
+            attn_without_cls = attn_without_cls.reshape(number_of_heads, w_featmap, h_featmap)
+            attn_without_cls = torch.sum(attn_without_cls, dim=0)
 
 
-    """画出热力图（可以选择其中一个维度的特征）"""
-    plt.figure(figsize=(40, 32))
-    sns.heatmap(attn_without_cls.cpu().numpy(), cmap='viridis', cbar=True)
-    plt.title("Visualization of heatmap_without_cls_"+file.split('.')[0])
-    plt.xlabel("Dimensionality")
-    plt.ylabel("Sequence Length")
+            """画出热力图（可以选择其中一个维度的特征）"""
+            plt.figure(figsize=(40, 32))
+            sns.heatmap(attn_without_cls.cpu().numpy(), cmap='viridis', cbar=True)
+            plt.title(f"Visualization of heatmap_q_p{i}_attention_"+file.split('.')[0])
+            plt.xlabel("Dimensionality")
+            plt.ylabel("Sequence Length")
 
 
-    """将图像保存到文件"""
-    print(os.path.join("/hy-tmp/explore_attention_vit/attention_without_class_token/heatmap/", "heatmap_without_cls_"+file.split('.')[0]+'.png'))
-    plt.savefig(os.path.join("/hy-tmp/explore_attention_vit/attention_without_class_token/heatmap/", "heatmap_without1_cls_"+file.split('.')[0]+'.png'), dpi=300)
-    plt.close() 
+            """将图像保存到文件"""
+            print(os.path.join("/hy-tmp/explore_attention_vit/attention_pro_as_cls_token/", f"heatmap_q_p{i}_attention_"+file.split('.')[0]+'.png'))
+            plt.savefig(os.path.join("/hy-tmp/explore_attention_vit/attention_pro_as_cls_token/", f"heatmap_q_p{i}_attention_"+file.split('.')[0]+'.png'), dpi=300)
+            plt.close() 
 
-   
 
-    
+

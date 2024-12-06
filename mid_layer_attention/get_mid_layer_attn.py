@@ -18,9 +18,9 @@ from torchvision import datasets, transforms
 
 from dinov2.models.vision_transformer import vit_small, vit_base, vit_large
 
-
 __all__ = ['00005.jpg', '00008.jpg',  '00026.jpg', '00180.jpg', '00884.jpg', '01067.jpg']
 
+torch.set_printoptions(profile="full")
 if 1:
     # # These are settings for ensuring input images to DinoV2 are properly sized
     model = vit_base(
@@ -70,7 +70,7 @@ if 1:
     model.to(device)
     model.eval()
 
-    file = '01067.jpg'
+    file = '00008.jpg'
     original_image = Image.open(os.path.join('/hy-tmp/explore_attention_vit/dior_train/', file))
     (original_w, original_h) = original_image.size
     img = data_transforms(original_image)
@@ -84,42 +84,37 @@ if 1:
 
     img = img.unsqueeze(0)
     img = img.to(device)
-
-    q_k_attn = model.get_last_self_attention(img.to(device))
-                                                          
-    q = q_k_attn[0]
-    k = q_k_attn[1]
-    print(q_k_attn[0].shape, q_k_attn[1].shape, q_k_attn[2].shape)
-
-    number_of_heads = q.shape[1]
-    n_register_tokens = 4
-
-    q_without_cls = q[:, :, :, :]          ####   一定要注意
-    print(q[0, 0, 0:1, :])
-    k_without_cls = k[:, :, :, :]          ####
     
-    attn_without_cls = q_without_cls @ k_without_cls.transpose(-2, -1)
-    attn_without_cls = attn_without_cls.softmax(dim=-1)
-    attn_without_cls = nn.Dropout(0.0)(attn_without_cls)
-    print(attn_without_cls.shape)
+    feat = model.forward_features(img)['x_prenorm'][:, 1:]
+    print(feat.shape)
+    
 
-    attn_without_cls = attn_without_cls[0, :, 4, 5:].reshape(number_of_heads, -1)
-    attn_without_cls = attn_without_cls.reshape(number_of_heads, w_featmap, h_featmap)
-    attn_without_cls = torch.sum(attn_without_cls, dim=0)
+    
+    # mid_attention = model.get_intermediate_layers_attention(img.to(device), n=[4, 6, 8, 10])
+    # # mid_attention:[tuple, tuple, tuple, tuple]
+    # for i, mid in enumerate(mid_attention):
+    #     print(type(mid[2]), mid[2].shape)
+    #     attention = mid[2]
+
+    #     number_of_heads = attention.shape[1]
+    #     n_register_tokens = 4
+
+    #     attention = attention[0, :, 0, 1 + n_register_tokens:].reshape(number_of_heads, -1)
+    #     attention = attention.reshape(number_of_heads, w_featmap, h_featmap)
+    #     attention = torch.sum(attention, dim=0)
+    #     # print(attention)
+
+    #     """画出热力图（可以选择其中一个维度的特征）"""
+    #     plt.figure(figsize=(20, 16))
+    #     sns.heatmap(attention.cpu().numpy(), cmap='viridis', cbar=True)
+    #     plt.title(os.path.join(f"Visualization heatmap of {i}th layer attention", file.split('.')[0]))
+    #     plt.xlabel("Dimensionality")
+    #     plt.ylabel("Sequence Length")
 
 
-    """画出热力图（可以选择其中一个维度的特征）"""
-    plt.figure(figsize=(40, 32))
-    sns.heatmap(attn_without_cls.cpu().numpy(), cmap='viridis', cbar=True)
-    plt.title("Visualization of heatmap_without_cls_"+file.split('.')[0])
-    plt.xlabel("Dimensionality")
-    plt.ylabel("Sequence Length")
-
-
-    """将图像保存到文件"""
-    print(os.path.join("/hy-tmp/explore_attention_vit/attention_without_class_token/heatmap/", "heatmap_without_cls_"+file.split('.')[0]+'.png'))
-    plt.savefig(os.path.join("/hy-tmp/explore_attention_vit/attention_without_class_token/heatmap/", "heatmap_without1_cls_"+file.split('.')[0]+'.png'), dpi=300)
-    plt.close() 
+    #     """将图像保存到文件"""
+    #     plt.savefig(os.path.join("/hy-tmp/explore_attention_vit/mid_layer_attention/", f'heatmap_of_{i}th_layer_attention_'+file.split('.')[0]), dpi=300) 
+    #     plt.close() 
 
    
 

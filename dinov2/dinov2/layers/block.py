@@ -89,7 +89,7 @@ class Block(nn.Module):
     def forward(self, x: Tensor, return_attention=False) -> Tensor:
         y = self.attn(self.norm1(x), return_attn=return_attention)
          
-        print(f"block {return_attention}")
+        # print(f"block {return_attention}")
         def attn_residual_func(x: Tensor) -> Tensor:
             res_y = self.attn(self.norm1(x), return_attn=return_attention)
             return self.ls1(res_y[0])

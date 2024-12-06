@@ -93,17 +93,17 @@ if 1:
 
     number_of_heads = q.shape[1]
     n_register_tokens = 4
-
-    q_without_cls = q[:, :, :, :]          ####   一定要注意
-    print(q[0, 0, 0:1, :])
-    k_without_cls = k[:, :, :, :]          ####
     
-    attn_without_cls = q_without_cls @ k_without_cls.transpose(-2, -1)
+    # probability = 0.5
+    # random_mask = torch.rand_like(k)<probability
+    # k[random_mask] = 1
+    # k = torch.ones(1, 12, 1854, 64).to('cuda:0')
+
+    attn_without_cls = q @ k.transpose(-2, -1)
     attn_without_cls = attn_without_cls.softmax(dim=-1)
     attn_without_cls = nn.Dropout(0.0)(attn_without_cls)
-    print(attn_without_cls.shape)
 
-    attn_without_cls = attn_without_cls[0, :, 4, 5:].reshape(number_of_heads, -1)
+    attn_without_cls = attn_without_cls[0, :, 0, 5:].reshape(number_of_heads, -1)
     attn_without_cls = attn_without_cls.reshape(number_of_heads, w_featmap, h_featmap)
     attn_without_cls = torch.sum(attn_without_cls, dim=0)
 
@@ -111,16 +111,13 @@ if 1:
     """画出热力图（可以选择其中一个维度的特征）"""
     plt.figure(figsize=(40, 32))
     sns.heatmap(attn_without_cls.cpu().numpy(), cmap='viridis', cbar=True)
-    plt.title("Visualization of heatmap_without_cls_"+file.split('.')[0])
+    plt.title("Visualization of heatmap_k_as_1"+file.split('.')[0])
     plt.xlabel("Dimensionality")
     plt.ylabel("Sequence Length")
 
 
     """将图像保存到文件"""
-    print(os.path.join("/hy-tmp/explore_attention_vit/attention_without_class_token/heatmap/", "heatmap_without_cls_"+file.split('.')[0]+'.png'))
-    plt.savefig(os.path.join("/hy-tmp/explore_attention_vit/attention_without_class_token/heatmap/", "heatmap_without1_cls_"+file.split('.')[0]+'.png'), dpi=300)
+    print(os.path.join("/hy-tmp/explore_attention_vit/attention_with_k_as_1", "heatmap_with_k_as_1_"+file.split('.')[0]+'.png'))
+    plt.savefig(os.path.join("/hy-tmp/explore_attention_vit/attention_with_k_as_1", "heatmap_with_k_as_1_"+file.split('.')[0]+'.png'), dpi=300)
     plt.close() 
 
-   
-
-    

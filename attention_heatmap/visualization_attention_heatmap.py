@@ -20,6 +20,7 @@ from dinov2.models.vision_transformer import vit_small, vit_base, vit_large
 
 __all__ = ['00005.jpg', '00008.jpg',  '00026.jpg', '00180.jpg', '00884.jpg', '01067.jpg']
 
+torch.set_printoptions(profile="full")
 if 1:
     # # These are settings for ensuring input images to DinoV2 are properly sized
     model = vit_base(
@@ -97,6 +98,7 @@ if 1:
     attention = attention[0, :, 0, 1 + n_register_tokens:].reshape(number_of_heads, -1)
     attention = attention.reshape(number_of_heads, w_featmap, h_featmap)
     attention = torch.sum(attention, dim=0)
+    print(attention)
 
 
     """画出热力图（可以选择其中一个维度的特征）"""

@@ -101,22 +101,7 @@ if 1:
     print(q.shape)
     q_head = q.cpu().numpy().reshape(1854, -1)      # 选择第一个头的所有序列位置的64维向量
     
-    # kmeans=KMeans(n_clusters=5, random_state=42)
-    # labels = kmeans.fit_predict(q_head)
 
-    # tsne = TSNE(n_components=2, random_state=42)    # 使用t-SNE进行降维到2D
-    # q_tsne = tsne.fit_transform(q_head)
-
-    # """绘制t-SNE降维后的2D散点图 """
-    # plt.figure(figsize=(10, 8))
-    # # plt.scatter(q_tsne[:, 0], q_tsne[:, 1], s=5, c=q_tsne[:, 0], cmap='viridis', alpha=0.5)
-    # scatter = plt.scatter(q_tsne[:, 0], q_tsne[:, 1], c=labels, cmap='viridis', s=20, alpha=0.7)
-    # plt.title("t-SNE Visualization of Query Features")
-    # plt.xlabel("t-SNE Component 1")
-    # plt.ylabel("t-SNE Component 2")
-    # plt.legend(*scatter.legend_elements(), title="Clusters")
-    # plt.colorbar(scatter)  # 添加颜色条，表示每个簇的颜色
-    # # plt.show()
 
     """画出热力图（可以选择其中一个维度的特征）"""
     plt.figure(figsize=(10, 8))
